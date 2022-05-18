@@ -17,8 +17,9 @@ async function run(){
 
         const servicesCollection = client.db("doctors_portal").collection("services")
         const bookingCollection = client.db("doctors_portal").collection("booking")
+        const usersCollection = client.db("doctors_portal").collection("users")
 
-        // services API 
+        // all services API 
 
         app.get('/services', async (req, res) => {
             const query = {}
@@ -61,6 +62,21 @@ async function run(){
 
             res.send(services)
         })
+
+        // users put API
+
+        app.put('/user/:email', async(req, res) => {
+            const email = req.params.email
+            const user = req.body
+            const filter = {email: email}
+            const options = {upsert: true}
+            const updateDoc = {
+                $set: user
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        } )
+
 
     }
     finally{
