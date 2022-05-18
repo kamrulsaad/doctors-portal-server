@@ -107,14 +107,26 @@ async function run() {
             res.send({ result, token })
         })
 
-        app.put('/user/admin/:email', async (req, res) => {
+        app.get('/admin/:email',verifyJWT, async(req, res) => {
             const email = req.params.email
-            const filter = { email: email }
-            const updateDoc = {
-                $set: {role: "Admin"}
+            const user = await usersCollection.findOne({email})
+            const isAdmin = user.role === "Admin"
+            res.send({admin: isAdmin})
+        })
+
+        app.put('/user/admin/:email',verifyJWT, async (req, res) => {
+            const email = req.params.email
+            const requester = req.decoded.email
+            const requestedAccount = await usersCollection.findOne({email: requester})
+            if(requestedAccount.role === 'Admin'){
+                const filter = { email: email }
+                const updateDoc = {
+                    $set: {role: "Admin"}
+                }
+                const result = await usersCollection.updateOne(filter, updateDoc)
+                res.send(result)
             }
-            const result = await usersCollection.updateOne(filter, updateDoc)
-            res.send(result)
+            else res.status(403).send({message: "Forbidden Access"})
         })
 
 
