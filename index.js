@@ -1,10 +1,12 @@
 import express from 'express'
 import cors from "cors"
 import 'dotenv/config'
-import { MongoClient, ServerApiVersion } from 'mongodb'
+import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import sgTransport from 'nodemailer-sendgrid-transport'
+import Stripe from 'stripe'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 5000
 const app = express()
 
@@ -35,7 +37,7 @@ const sgClient = nodemailer.createTransport(sgTransport(emailSenderOptions));
 
 function senAppointmentEmail(booking) {
 
-    const {patient, patientEmail, date, slot, treatment} = booking
+    const { patient, patientEmail, date, slot, treatment } = booking
 
     const email = {
         from: process.env.EMAIL_SENDER,
@@ -194,6 +196,29 @@ async function run() {
         app.delete('/doctor/:email', verifyJWT, verfyAdmin, async (req, res) => {
             const email = req.params.email
             const result = await doctorsCollection.deleteOne({ email })
+            res.send(result)
+        })
+
+        // payment API 
+
+        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price* 100
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount,
+              currency: "usd",
+              payment_method_types: ['card'],
+            });
+          
+            res.send({
+              clientSecret: paymentIntent.client_secret,
+            });
+          });
+
+        app.get('/payment/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
+            const result = await bookingCollection.findOne(filter)
             res.send(result)
         })
 
