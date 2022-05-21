@@ -74,7 +74,7 @@ async function run() {
         const servicesCollection = client.db("doctors_portal").collection("services")
         const bookingCollection = client.db("doctors_portal").collection("booking")
         const usersCollection = client.db("doctors_portal").collection("users")
-        const doctorsCollection = client.db("doctors_portal").collection("doctors")
+        const paymentCollection = client.db("doctors_portal").collection("payment")
 
         // verify Admin middleware
 
@@ -117,6 +117,22 @@ async function run() {
                 res.send(result)
             }
             else return res.status(403).send({ message: 'Forbidden Access' })
+        })
+    
+        app.patch('/booking/:id', verifyJWT, async(req, res) => {
+            const id = req.params.id
+            const payment = req.body
+            const filter = {_id : ObjectId(id)}
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const result = paymentCollection.insertOne(payment)
+            const updatedBooking = await bookingCollection.updateOne(filter, updateDoc)
+            res.send(updatedBooking)
+
         })
 
         // availbale appointments API 
